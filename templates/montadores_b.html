@@ -2,9 +2,8 @@
 <html lang="pt-BR">
 <head>
     <meta charset="UTF-8">
-    <title>Montadores B - Controle de Kits</title>
+    <title>Montadores A - Controle de Kits</title>
     <style>
-        /* Estilos permanecem os mesmos */
         body {
             font-family: Arial, sans-serif;
             text-align: center;
@@ -24,7 +23,11 @@
             border-radius: 5px;
             margin: 5px;
         }
-        button:hover {
+        button:disabled {
+            background-color: #ccc;
+            cursor: not-allowed;
+        }
+        button:hover:not(:disabled) {
             background-color: #45a049;
         }
         .status-table {
@@ -49,6 +52,7 @@
             width: 100%;
             height: 100%;
             background-color: rgba(0,0,0,0.5);
+            animation: fadeIn 0.5s ease;
         }
         .modal-content {
             background-color: #fefefe;
@@ -56,6 +60,8 @@
             padding: 20px;
             border: 1px solid #888;
             width: 50%;
+            border-radius: 10px;
+            animation: slideIn 0.3s ease;
         }
         .close-btn {
             color: red;
@@ -67,14 +73,37 @@
         .close-btn:hover {
             color: darkred;
         }
+
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+
+        @keyframes slideIn {
+            from { transform: translateY(-50px); opacity: 0; }
+            to { transform: translateY(0); opacity: 1; }
+        }
+
+        .modal-backdrop {
+            filter: blur(5px);
+        }
     </style>
 </head>
 <body>
-    <h2>Montadores B - Controle de Kits</h2>
+    <h2>Montadores A - Controle de Kits</h2>
 
     <div class="button-container">
-        <button onclick="openModal('reabastecimento')">Solicitar Kits</button>
-        <button onclick="openModal('produção')">Confirmar Entrega</button>
+        <button id="solicitarButton" onclick="openModal('reabastecimento')">Solicitar Kits</button>
+    </div>
+
+    <!-- Modal de confirmação de entrega -->
+    <div id="confirmationModal" class="modal">
+        <div class="modal-content">
+            <span class="close-btn" onclick="closeModal()">&times;</span>
+            <p id="modalMessage">A mensagem de confirmação aparecerá aqui.</p> <!-- Este é o modalMessage que está faltando -->
+            <button id="confirmDeliveryBtn">Confirmar</button>
+            <button id="declineDeliveryBtn">Recusar</button>
+        </div>
     </div>
 
     <table class="status-table">
@@ -99,7 +128,7 @@
             <div id="kitOptions">
                 <!-- Opções de kits serão inseridas aqui -->
             </div>
-            <button onclick="submitStatusChange()">Enviar</button>
+            <button id="submitBtn" onclick="submitStatusChange()">Enviar</button>
         </div>
     </div>
 
@@ -107,6 +136,19 @@
         let kits = [];
         let selectedKits = [];
         let newStatus = '';
+        let isSubmitting = false;
+
+        const kitIds = {
+            1: 'kit_a_1',
+            2: 'kit_b_1',
+            3: 'kit_c_1',
+            4: 'kit_a_2',
+            5: 'kit_a_3',
+            6: 'kit_b_2',
+            7: 'kit_b_3',
+            8: 'kit_c_2',
+            9: 'kit_c_3'
+        };
 
         function loadKits() {
             fetch('/get_kits?classe=b')
@@ -159,20 +201,98 @@
             });
 
             document.getElementById('kitModal').style.display = 'block';
+            document.body.classList.add('modal-backdrop');
         }
 
         function closeModal() {
             document.getElementById('kitModal').style.display = 'none';
+            document.body.classList.remove('modal-backdrop');
         }
 
+        function checkForDeliveries() {
+            fetch('/get_deliveries?classe=a')  // Chama o backend para verificar se há entregas pendentes
+            .then(response => response.json())
+            .then(data => {
+                if (data.deliveries && data.deliveries.length > 0) {
+                    const delivery = data.deliveries[0];  // Pega a primeira entrega pendente
+                    showMontadorConfirmationModal(delivery.kit_id, delivery.sensor_id);
+                }
+            })
+            .catch(error => console.error('Erro ao verificar entregas:', error));
+        }
+        
+        function showMontadorConfirmationModal(kitId, kitName) {
+            const confirmationModal = document.getElementById('confirmationModal');
+            const modalMessageElement = document.getElementById('modalMessage');
+            
+            modalMessageElement.innerText = `O kit ${kitName} foi entregue. Confirmar entrega?`;
+        
+            // Exibir o modal
+            confirmationModal.style.display = 'block';
+        
+            // Lógica para o botão de confirmação
+            document.getElementById('confirmDeliveryBtn').onclick = function() {
+                confirmarEntrega(kitId);
+                confirmationModal.style.display = 'none';
+            };
+        
+            // Lógica para o botão de recusar
+            document.getElementById('declineDeliveryBtn').onclick = function() {
+                recusarEntrega(kitId);
+                confirmationModal.style.display = 'none';
+            };
+        }        
+        
+        function confirmarEntrega(kitId) {
+            fetch('/confirm_delivery', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ kit_id: kitId })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    alert(`Entrega do kit ${kitIds[kitId]} confirmada.`);
+                    loadKits();  // Atualiza a tabela de kits
+                } else {
+                    alert('Erro ao confirmar entrega.');
+                }
+            })
+            .catch(error => console.error('Erro ao confirmar entrega:', error));
+        }        
+        
+        
+        function recusarEntrega(kitId) {
+            fetch('/decline_delivery', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ kit_id: kitId })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    alert(`Entrega do kit ${kitIds[kitId]} foi recusada.`);
+                } else {
+                    alert('Erro ao recusar entrega.');
+                }
+            })
+            .catch(error => console.error('Erro ao recusar entrega:', error));
+        }
+               
+
+        setInterval(checkForDeliveries, 5000); // Verifica a cada 5 segundos        
+
         function submitStatusChange() {
+            if (isSubmitting) return;
             const checkboxes = document.querySelectorAll('#kitOptions input[type="checkbox"]:checked');
+            const kit_ids = Array.from(checkboxes).map(cb => parseInt(cb.value));
+            
             if (checkboxes.length === 0) {
                 alert('Selecione pelo menos um kit.');
                 return;
             }
-
-            const kit_ids = Array.from(checkboxes).map(cb => parseInt(cb.value));
+            isSubmitting = true;
+            document.getElementById('submitBtn').disabled = true;
 
             fetch('/update_kit_status', {
                 method: 'POST',
@@ -182,7 +302,6 @@
             .then(response => response.json())
             .then(data => {
                 if (data.success) {
-                    // Atualiza os kits localmente
                     kits.forEach(kit => {
                         if (kit_ids.includes(kit.id)) {
                             kit.status = newStatus;
@@ -194,19 +313,40 @@
                 } else {
                     alert('Erro ao atualizar status.');
                 }
+            })
+            .finally(() => {
+                isSubmitting = false;
+                document.getElementById('submitBtn').disabled = false;
             });
         }
 
-        // Atualiza a tabela periodicamente para refletir mudanças
-        setInterval(loadKits, 5000);
-        setInterval(updateKitTable, 5000);
+        function atualizarStatusBackend(kitId, newStatus) {
+            fetch('/update_kit_status', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ kit_ids: [kitId], status: newStatus })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (!data.success) {
+                    alert('Erro ao atualizar status: ' + data.error); // Exibe a mensagem de erro correta
+                } else {
+                    console.log('Status atualizado com sucesso.');
+                }
+            })
+            .catch(error => console.error('Erro ao atualizar o status no backend:', error));
+        }
+        
+
+        setInterval(loadKits, 3000);
 
         window.onclick = function(event) {
             const modal = document.getElementById('kitModal');
             if (event.target == modal) {
-                modal.style.display = "none";
+                closeModal();
             }
         }
+        setInterval(updateKitTable, 3000);
     </script>
 </body>
 </html>

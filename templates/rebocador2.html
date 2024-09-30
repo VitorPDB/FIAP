@@ -1,0 +1,1361 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <title>Rebocador 2 - Controle de Kits</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            text-align: center;
+            margin: 0;
+            padding: 0;
+            background-color: #ffffff; /* Fundo branco */
+        }
+        h2 {
+            margin-top: 20px;
+            text-align: center;
+        }
+        #container {
+            display: flex;
+            justify-content: center;
+            align-items: flex-start;
+            margin-top: 20px;
+        }
+        #cartesian-plane {
+            position: relative;
+            width: 70%; /* Diminuir o tamanho do mapa */
+            height: 600px;
+            margin-right: 20px;
+            border: 2px solid #000;
+            background-color: #494C4E;
+        }
+        .point {
+            position: absolute;
+            width: 30px;
+            height: 30px;
+            text-align: center;
+            line-height: 30px;
+            font-weight: bold;
+            color: white;
+        }
+        /* Estilo para os kits da classe "a" (quadrados) */
+        .kit-a {
+            background-color: #000080; /* Nova cor para kits da classe A */
+        }
+        /* Estilo para os kits da classe "b" (triângulos) */
+        .kit-b {
+            width: 0;
+            height: 0;
+            border-left: 15px solid transparent;
+            border-right: 15px solid transparent;
+            border-bottom: 30px solid #6959CD; /* Nova cor para kits da classe B */
+            line-height: 0; /* Remover altura da linha */
+            color: white;
+            text-align: center;
+        }
+        /* Estilo para os kits da classe "c" (círculos) */
+        .kit-c {
+            border-radius: 50%;
+            background-color: #00BFFF; /* Nova cor para kits da classe C */
+        }
+        .coords {
+            position: absolute;
+            font-size: 14px;
+            font-weight: bold;
+            color: yellow;
+            background-color: black;
+            padding: 2px 5px;
+            border-radius: 5px;
+            white-space: nowrap;
+        }
+        .button-container {
+            margin: 20px auto;
+            width: 80%;
+        }
+        button {
+            padding: 10px 20px;
+            font-size: 16px;
+            cursor: pointer;
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            margin: 5px;
+        }
+        button:hover {
+            background-color: #45a049;
+        }
+        .status-table {
+            margin: 20px auto;
+            width: 80%;
+            border-collapse: collapse;
+            table-layout: fixed; /* Fixar o layout da tabela */
+        }
+        .status-table th, .status-table td {
+            padding: 10px;
+            border: 1px solid #ddd;
+            text-align: center;
+            width: 33%; /* Ajustar a largura das colunas */
+        }
+        .status-table th {
+            background-color: #f2f2f2;
+        }
+        .status-livre {
+            background-color: #4CAF50;
+            color: white;
+        }
+        .status-reabastecimento {
+            background-color: #ffeb3b;
+            color: black;
+        }
+        .status-producao {
+            background-color: #00FF00;
+            color: white;
+        }
+        .status-em-curso {
+            background-color: #f44336;
+            color: white;
+        }
+        .status-rebocador-a-caminho {
+            background-color: #FFA500; /* Laranja para "rebocador à caminho" */
+            color: black;
+        }
+        #kitSeguido {
+            margin-top: 10px;
+            font-weight: bold;
+            color: black;
+        }
+        /* Estilo do modal */
+        .modal {
+            display: none;
+            position: fixed;
+            z-index: 1;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.4);
+        }
+        .modal-content {
+            background-color: white;
+            margin: 5% auto;
+            padding: 20px;
+            border: 1px solid #888;
+            width: 60%;
+            text-align: center;
+        }
+        .modal-content h3 {
+            margin-bottom: 20px;
+        }
+        .close-btn {
+            color: red;
+            font-size: 20px;
+            float: right;
+            cursor: pointer;
+        }
+        .close-btn:hover {
+            color: darkred;
+        }
+        .error-modal-content {
+            background-color: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+        /* Estilo dos destinos */
+        .destino {
+            position: absolute;
+            width: 20px;
+            height: 10px; /* Pequenos retângulos */
+            text-align: center;
+            font-weight: bold;
+            color: white;
+        }
+        /* Estilo das colunas do modal */
+        .kit-columns {
+            display: flex;
+            justify-content: space-around;
+            margin-top: 20px;
+        }
+        .kit-column {
+            width: 30%; /* Divisão das colunas */
+            text-align: center;
+        }
+        .kit-column h4 {
+            margin-bottom: 10px;
+        }
+        /* Demarcação de Áreas */
+        .area-demarcada {
+            position: absolute;
+            border: 2px dashed #FFFFFF;
+            background-color: rgba(255, 255, 255, 0.1);
+        }
+        /* Estilo das áreas identificadas */
+        #area-supermercado1, #area-supermercado2, #area-supermercado3 {
+            background-color: rgba(34, 139, 34, 0.7); /* Verde escuro */
+        }
+        /* Dividindo a área de produção em três partes */
+        #area-producao-a, #area-producao-b, #area-producao-c {
+            background-color: rgba(255, 255, 0, 0.7); /* Amarelo */
+        }
+        #area-estacionamento-a, #area-estacionamento-b, #area-estacionamento-c {
+            background-color: rgba(211, 211, 211, 0.7); /* Cinza claro */
+        }
+        /* Estilo da legenda */
+        .legenda {
+            text-align: left;
+            width: 200px;
+        }
+        .legenda-item {
+            display: flex;
+            align-items: center;
+            margin-bottom: 5px;
+        }
+        .legenda-color {
+            width: 20px;
+            height: 20px;
+            margin-right: 10px;
+        }
+        /* Estilo para Destinos Futuros */
+        #destinos-futuros {
+            margin-top: 20px;
+            text-align: left;
+        }
+        #destinos-futuros h3 {
+            margin-bottom: 10px;
+        }
+        #lista-destinos {
+            list-style-type: disc;
+            padding-left: 20px;
+        }    
+    </style>
+</head>
+
+<body>
+    <h2>Rebocador 2 - Controle de Kits</h2>
+
+    <div id="container">
+        <div id="cartesian-plane">
+            <!-- Áreas demarcadas (permanecem as mesmas) -->
+            <div id="area-supermercado1" class="area-demarcada" style="left: 20px; top: 20px; width: 40px; height: 100px;"></div>
+            <div id="area-supermercado2" class="area-demarcada" style="left: 20px; top: 140px; width: 40px; height: 100px;"></div>
+            <div id="area-supermercado3" class="area-demarcada" style="left: 20px; top: 260px; width: 40px; height: 100px;"></div>
+
+            <!-- Divisão da área de produção em três partes -->
+            <div id="area-producao-a" class="area-demarcada" style="left: 200px; top: 100px; width: 130px; height: 200px;"></div>
+            <div id="area-producao-b" class="area-demarcada" style="left: 335px; top: 100px; width: 130px; height: 200px;"></div>
+            <div id="area-producao-c" class="area-demarcada" style="left: 470px; top: 100px; width: 130px; height: 200px;"></div>
+
+            <!-- Estacionamentos -->
+            <div id="area-estacionamento-a" class="area-demarcada" style="left: 650px; top: 50px; width: 40px; height: 100px;"></div>
+            <div id="area-estacionamento-b" class="area-demarcada" style="left: 650px; top: 200px; width: 40px; height: 100px;"></div>
+            <div id="area-estacionamento-c" class="area-demarcada" style="left: 650px; top: 350px; width: 40px; height: 100px;"></div>
+
+            <!-- Rebocador -->
+            <div id="rebocador" class="point" style="background-color: #ADD8E6;">R</div>
+            <div id="rebocador-coords" class="coords">X: 0, Y: 0</div>
+
+            <!-- Kits-Carro -->
+            <!-- Agora, os kits serão exibidos ou ocultados com base no status via JavaScript -->
+            <div id="kit_a_1" class="point kit-a">A1</div>
+            <div id="kit_a_2" class="point kit-a">A2</div>
+            <div id="kit_a_3" class="point kit-a">A3</div>
+
+            <div id="kit_b_1" class="point kit-b">B1</div>
+            <div id="kit_b_2" class="point kit-b">B2</div>
+            <div id="kit_b_3" class="point kit-b">B3</div>
+
+            <div id="kit_c_1" class="point kit-c">C1</div>
+            <div id="kit_c_2" class="point kit-c">C2</div>
+            <div id="kit_c_3" class="point kit-c">C3</div>
+
+            <!-- Destinos -->
+            <div id="destino_reabastecimento" class="destino" style="display: none;"></div>
+            <div id="destino_producao" class="destino" style="display: none;"></div>
+        </div>
+
+        <!-- Legenda e Destinos Futuros -->
+        <div>
+            <!-- Legenda -->
+            <div class="legenda">
+                <div class="legenda-item">
+                    <div class="legenda-color" style="background-color: rgba(34, 139, 34, 0.7);"></div>
+                    <span>Supermercado 1 (Classe A)</span>
+                </div>
+                <div class="legenda-item">
+                    <div class="legenda-color" style="background-color: rgba(34, 139, 34, 0.7);"></div>
+                    <span>Supermercado 2 (Classe B)</span>
+                </div>
+                <div class="legenda-item">
+                    <div class="legenda-color" style="background-color: rgba(34, 139, 34, 0.7);"></div>
+                    <span>Supermercado 3 (Classe C)</span>
+                </div>
+                <div class="legenda-item">
+                    <div class="legenda-color" style="background-color: rgba(255, 255, 0, 0.7);"></div>
+                    <span>Produção A</span>
+                </div>
+                <div class="legenda-item">
+                    <div class="legenda-color" style="background-color: rgba(255, 255, 0, 0.7);"></div>
+                    <span>Produção B</span>
+                </div>
+                <div class="legenda-item">
+                    <div class="legenda-color" style="background-color: rgba(255, 255, 0, 0.7);"></div>
+                    <span>Produção C</span>
+                </div>
+                <div class="legenda-item">
+                    <div class="legenda-color" style="background-color: rgba(211, 211, 211, 0.7);"></div>
+                    <span>Estacionamento A</span>
+                </div>
+                <div class="legenda-item">
+                    <div class="legenda-color" style="background-color: rgba(211, 211, 211, 0.7);"></div>
+                    <span>Estacionamento B</span>
+                </div>
+                <div class="legenda-item">
+                    <div class="legenda-color" style="background-color: rgba(211, 211, 211, 0.7);"></div>
+                    <span>Estacionamento C</span>
+                </div>
+            </div>
+
+            <!-- Destinos Futuros -->
+            <div id="destinos-futuros">
+                <h3>Destinos Futuros</h3>
+                <ul id="lista-destinos"></ul>
+            </div>
+        </div></div>
+
+
+        <!-- Novo elemento para exibir a lista de kits a serem rebocados -->
+    <div id="kits-para-rebocar">
+        <h3>Kits para rebocar</h3>
+        <ul id="lista-kits-para-rebocar"></ul>
+    </div>
+
+        <!-- Modal para erro de entrega -->
+    <div id="errorModal" class="modal">
+        <div class="modal-content">
+            <span class="close-btn" onclick="closeErrorModal()">&times;</span>
+            <p id="errorMessage">O kit foi deixado no lugar errado.</p> <!-- Mensagem de erro -->
+            <button id="errorConfirmBtn" onclick="confirmErrorNotification()">OK</button> <!-- Botão de confirmação -->
+        </div>
+    </div>
+
+
+    <!-- Modal para notificações -->
+    <div id="notificationModal" class="modal">
+        <div class="modal-content">
+            <span class="close-btn" onclick="closeNotificationModal()">&times;</span>
+            <p id="notificationText"></p>
+            <button onclick="confirmNotification()">Confirmar</button>
+        </div>
+    </div>
+
+    <p id="kitSeguido">Rebocador não está seguindo nenhum Kit-Carro</p>
+
+    <!-- Novo elemento para exibir a distância até o destino -->
+    <p id="distanciaDestino">Distância até o destino: N/A</p>
+
+    <!-- Botões -->
+    <div class="button-container">
+        <button onclick="startEmCurso()">Rebocar</button>
+        <button onclick="deixarKit()">Deixar kit</button>
+    </div>
+
+    <!-- Modal de confirmação para o montador -->
+    <div id="confirmationModal" class="modal">
+        <div class="modal-content">
+            <span class="close-btn" onclick="closeModal()">&times;</span>
+            <p id="modalMessage">A mensagem de confirmação aparecerá aqui.</p>
+            <button id="confirmDeliveryBtn">Confirmar</button>
+            <button id="declineDeliveryBtn">Recusar</button>
+        </div>
+    </div>
+
+    <table class="status-table">
+        <thead>
+            <tr>
+                <th>Kit-Carro</th>
+                <th>Status</th>
+                <th>Distância do Rebocador</th>
+            </tr>
+        </thead>
+        <tbody>
+            <tr><td>kit_a_1</td><td id="kitStatus1" class="status-reabastecimento">reabastecimento</td><td id="kitDistance1">N/A</td></tr>
+            <tr><td>kit_a_2</td><td id="kitStatus4" class="status-reabastecimento">reabastecimento</td><td id="kitDistance4">N/A</td></tr>
+            <tr><td>kit_a_3</td><td id="kitStatus5" class="status-producao">produção</td><td id="kitDistance5">N/A</td></tr>
+            <tr><td>kit_b_1</td><td id="kitStatus2" class="status-producao">produção</td><td id="kitDistance2">N/A</td></tr>
+            <tr><td>kit_b_2</td><td id="kitStatus6" class="status-producao">produção</td><td id="kitDistance6">N/A</td></tr>
+            <tr><td>kit_b_3</td><td id="kitStatus7" class="status-reabastecimento">reabastecimento</td><td id="kitDistance7">N/A</td></tr>
+            <tr><td>kit_c_1</td><td id="kitStatus3" class="status-reabastecimento">reabastecimento</td><td id="kitDistance3">N/A</td></tr>
+            <tr><td>kit_c_2</td><td id="kitStatus8" class="status-reabastecimento">reabastecimento</td><td id="kitDistance8">N/A</td></tr>
+            <tr><td>kit_c_3</td><td id="kitStatus9" class="status-producao">produção</td><td id="kitDistance9">N/A</td></tr>
+        </tbody>
+    </table>
+
+    <script>
+        // Variáveis globais
+        let kitStatus = {
+            1: 'reabastecimento',
+            2: 'producao',
+            3: 'reabastecimento',
+            4: 'reabastecimento',
+            5: 'producao',
+            6: 'producao',
+            7: 'reabastecimento',
+            8: 'reabastecimento',
+            9: 'producao'
+        };
+        let lastStatus = {
+            1: 'reabastecimento',
+            2: 'producao',
+            3: 'reabastecimento',
+            4: 'reabastecimento',
+            5: 'producao',
+            6: 'producao',
+            7: 'reabastecimento',
+            8: 'reabastecimento',
+            9: 'producao'
+        };
+        let rebocados = []; // Array para manter os kits rebocados
+        let kitsParaRebocar = []; // Lista de kits a serem rebocados
+        let kitsEmCurso = []; // Lista de kits em curso
+        let ultimoKitDeixado = null;
+
+        // Array com os IDs dos kits para referência
+        const kitIds = {
+            1: 'kit_a_1',
+            2: 'kit_b_1',
+            3: 'kit_c_1',
+            4: 'kit_a_2',
+            5: 'kit_a_3',
+            6: 'kit_b_2',
+            7: 'kit_b_3',
+            8: 'kit_c_2',
+            9: 'kit_c_3'
+        };
+
+        // Coordenadas para os destinos de reabastecimento e produção
+        const destinosCoordenadas = {
+            1: { reabastecimento: { x: 2, y: 5 }, producao: { x: 22, y: 12 } }, // Supermercado A e Ponto de Produção A
+            2: { reabastecimento: { x: 2, y: 16 }, producao: { x: 36, y: 15 } }, // Supermercado B e Ponto de Produção B
+            3: { reabastecimento: { x: 2, y: 28 }, producao: { x: 50, y: 25 } }, // Supermercado C e Ponto de Produção C
+            4: { reabastecimento: { x: 2, y: 5 }, producao: { x: 25, y: 18 } }, // Supermercado A e Ponto de Produção A
+            5: { reabastecimento: { x: 2, y: 5 }, producao: { x: 28, y: 20 } }, // Supermercado A e Ponto de Produção A
+            6: { reabastecimento: { x: 2, y: 16 }, producao: { x: 36, y: 20 } }, // Supermercado B e Ponto de Produção B
+            7: { reabastecimento: { x: 2, y: 16 }, producao: { x: 40, y: 25 } }, // Supermercado B e Ponto de Produção B
+            8: { reabastecimento: { x: 2, y: 28 }, producao: { x: 53, y: 28 } }, // Supermercado C e Ponto de Produção C
+            9: { reabastecimento: { x: 2, y: 28 }, producao: { x: 55, y: 30 } }  // Supermercado C e Ponto de Produção C
+        };
+
+        let notifications = [];
+        const rebocador_id = 2
+        const rebocadores = {{ rebocadores | tojson }};
+        const scale = 10;
+
+        function addKitToRebocados(rebocador, kitId) {
+            if (!rebocador.rebocados.includes(kitId)) {
+                rebocador.rebocados.push(kitId);
+            }
+        }
+        
+        function addKitToEmCurso(rebocador, kitId) {
+            if (!rebocador.emCurso.includes(kitId)) {
+                rebocador.emCurso.push(kitId);
+            }
+        }
+        
+        function removeKitFromRebocados(rebocador, kitId) {
+            rebocador.rebocados = rebocador.rebocados.filter(id => id !== kitId);
+        }
+        
+        function removeKitFromEmCurso(rebocador, kitId) {
+            rebocador.emCurso = rebocador.emCurso.filter(id => id !== kitId);
+        }
+        
+
+        function loadKitsParaRebocar() {
+            const rebocador = rebocadores.find(r => r.id === rebocador_id);
+            
+            fetch(`/get_kits_para_rebocar?rebocador_id=${rebocador.id}`)
+                .then(response => response.json())
+                .then(data => {
+                    // Atualize a lista de kits para rebocar
+                    rebocador.kits_para_rebocar = data.kits.map(kit => kit.id);
+        
+                    // Atualize a interface
+                    updateKitsParaRebocarList(rebocador_id);  // Atualiza a lista exibida de kits
+                    updateKitSeguidoText();  // Atualiza o texto de kits seguidos
+                })
+                .catch(error => console.error('Erro ao carregar kits para rebocar:', error));
+        }                        
+        loadKitsParaRebocar();
+
+        function showErrorModal(message) {
+            const errorModal = document.getElementById('errorModal');
+            const errorMessageElement = document.getElementById('errorMessage');
+        
+            if (ultimoKitDeixado !== null) {
+                const kitName = kitIds[ultimoKitDeixado];
+                errorMessageElement.innerText = `O kit-carro ${kitName} foi deixado no lugar errado.`;
+            } else {
+                errorMessageElement.innerText = message || 'O kit foi deixado no lugar errado.';
+            }
+        
+            errorModal.style.display = 'block';
+        }
+        
+        function closeErrorModal() {
+            const errorModal = document.getElementById('errorModal');
+            errorModal.style.display = 'none';
+        
+            if (ultimoKitDeixado !== null) {
+                const kitName = kitIds[ultimoKitDeixado];
+        
+                // Atualiza a notificação no backend para o kit deixado no lugar errado
+                fetch('/confirm_rebocador_notification', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ 
+                        rebocador_id: rebocador_id, // Use a variável dinâmica
+                        notification: `O kit-carro ${kitName} foi deixado no lugar errado. Corrija o destino.` 
+                    })
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (!data.success) {
+                        console.error('Erro ao confirmar notificação de erro.');
+                    }
+                })
+                .catch(error => console.error('Erro ao confirmar notificação de erro:', error));
+        
+                // Volta o kit para a lista de rebocados
+                if (!rebocador.rebocados.includes(ultimoKitDeixado)) {
+                    rebocador.rebocados.unshift(ultimoKitDeixado);  // Insere no início da lista
+                    rebocador.kitsEmCurso.push(ultimoKitDeixado);   // Adiciona à lista de kits em curso
+                }
+        
+                // Atualiza a interface para refletir a mudança
+                updateKitSeguidoText();
+                updateKitsParaRebocarList();  // Atualiza a lista exibida de kits
+            } else {
+                console.error('Erro ao identificar kit na notificação.');
+            }
+        }
+        
+              
+                           
+
+        function confirmErrorNotification() {
+            // Extraia o ID do kit da notificação de erro
+            const notificationMessage = document.getElementById('errorMessage').innerText;
+            const kitId = extractKitIdFromNotification(notificationMessage);
+        
+            if (!kitId) {
+                alert('Erro ao identificar o kit na notificação.');
+                return;
+            }
+        
+            // Atualiza o status do kit para "em curso"
+            kitStatus[kitId] = 'em_curso';
+            setKitCarroStatusForKit(kitId, 'em_curso');
+            kitsEmCurso.push(kitId); // Adiciona o kit à lista de kits em curso
+            rebocados.unshift(kitId); // Insere o kit como o primeiro na lista de kits rebocados
+        
+            // Atualiza a interface
+            const kitStatusCell = document.getElementById(`kitStatus${kitId}`);
+            kitStatusCell.innerText = 'em curso';
+            kitStatusCell.className = 'status-em-curso';
+        
+            // Atualiza o backend
+            atualizarStatusBackend(kitId, 'em_curso');
+        
+            // Atualiza o texto e a lista de kits seguidos
+            updateKitSeguidoText();
+            updateDestinationList();
+            showDestinoOnMap();
+        
+            // Confirma a notificação no backend para remover a notificação
+            fetch('/confirm_rebocador_notification', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ rebocador_id: rebocador_id, notification: notificationMessage })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    closeErrorModal(); // Fecha o modal de erro após confirmação
+                } else {
+                    alert('Erro ao confirmar notificação.');
+                }
+            })
+            .catch(error => console.error('Erro ao confirmar notificação:', error));
+        }
+        
+        function updateKitsParaRebocarList() {
+            // Primeiro, encontrar o rebocador pelo seu ID
+            const rebocador = rebocadores.find(r => r.id === rebocador_id);
+            const notification = document.getElementById('notificationText').innerText;
+            const listElement = document.getElementById('lista-kits-para-rebocar');
+            console.log('updateKitsParaRebocarList 1', rebocador.kits_para_rebocar);
+
+            console.log('updateKitsParaRebocarList 2', rebocador.kits_para_rebocar);
+            // Verifica se o objeto 'rebocador' foi encontrado e se possui a lista 'kits_para_rebocar'
+            if (rebocador && Array.isArray(rebocador.kits_para_rebocar)) {
+                listElement.innerHTML = ''; // Limpar lista anterior
+                if (rebocador.kits_para_rebocar.length > 0) {
+                    // Itera sobre a lista 'kits_para_rebocar' do rebocador
+                    rebocador.kits_para_rebocar.forEach(kitId => {
+                        const listItem = document.createElement('li');
+                        listItem.textContent = `Kit ${kitIds[kitId]}`;
+                        listElement.appendChild(listItem);
+                    });
+                }
+                if (rebocador.kits_para_rebocar.length === 0) {
+                    listElement.innerHTML = '<li>Nenhum kit para rebocar</li>';
+                }
+            } else {
+                // Exibe um erro se o rebocador não for encontrado ou a lista 'kits_para_rebocar' não estiver definida
+                console.error("Rebocador ou lista 'kits_para_rebocar' não definidos corretamente.");
+                const listElement = document.getElementById('lista-kits-para-rebocar');
+                listElement.innerHTML = '<li>Nenhum kit para rebocar</li>';
+            }
+        }
+                  
+
+        // Ajuste na função checkForNotifications para lidar com notificações de entrega recusada
+        let processedNotifications = []; // Armazena notificações já processadas
+
+        function checkForNotifications() {
+            rebocadores.forEach(rebocador => {
+                fetch(`/get_rebocador_notifications?rebocador_id=${rebocador.id}`)
+                    .then(response => response.json())
+                    .then(data => {
+                        if (data.notifications && data.notifications.length > 0) {
+                            data.notifications.forEach(notification => {
+                                // Verifica se a notificação já foi processada para esse rebocador
+                                rebocador.processedNotifications = rebocador.processedNotifications || [];
+                                
+                                if (!rebocador.processedNotifications.includes(notification)) {
+                                    // Processa as diferentes notificações
+                                    if (notification.includes('foi deixado no lugar errado')) {
+                                        const kitId = extractKitIdFromNotification(notification);
+                                        showErrorModal(`O kit-carro ${kitIds[kitId]} foi deixado no lugar errado. Corrija o destino.`);
+                                    } else if (notification.includes('confirmada')) {
+                                        console.log("Entrega confirmada para o kit.");
+                                    } else if (notification.includes('precisa ser rebocado')) {
+                                        // Verificação: só mostrar a notificação para o rebocador designado
+                                        if (notification.includes(rebocador.id) && rebocador.id == rebocador_id) {
+                                            showNotificationModal(notification);
+                                            rebocador.processedNotifications.shift();
+                                        }
+                                    }
+        
+                                    // Marcar a notificação como processada para este rebocador
+                                    rebocador.processedNotifications.push(notification);
+                                }
+                            });
+                        }
+                    })
+                    .catch(error => console.error('Erro ao verificar notificações para o rebocador ' + rebocador.id + ':', error));
+            });
+        }
+
+        
+        
+
+        function showNotificationModal(notification) {
+            document.getElementById('notificationText').innerText = notification;
+            document.getElementById('notificationModal').style.display = 'block';
+        }        
+
+        function closeNotificationModal() {
+            document.getElementById('notificationModal').style.display = 'none';
+        }
+
+        function confirmNotification() {
+            const notification = document.getElementById('notificationText').innerText;
+            const kitId = extractKitIdFromNotification(notification);
+        
+            if (kitId) {
+                const rebocador = rebocadores.find(r => r.id === rebocador_id);
+                if (rebocador && !rebocador.kits_para_rebocar.includes(kitId)) {
+                    rebocador.kits_para_rebocar.push(kitId);  // Adiciona o kit à lista deste rebocador
+                }
+                console.log('kits para rebocar: ', rebocador.kits_para_rebocar);
+                // Atualiza o status no frontend
+                kitStatus[kitId] = 'rebocador-a-caminho';
+                const kitStatusCell = document.getElementById(`kitStatus${kitId}`);
+                kitStatusCell.innerText = 'rebocador à caminho';
+                kitStatusCell.className = 'status-rebocador-a-caminho';
+        
+                // Atualiza o status no backend
+                atualizarStatusBackend(kitId, 'rebocador-a-caminho');
+        
+                // Atualiza a interface
+                updateKitSeguidoText();
+                updateDestinationList();
+                showDestinoOnMap();
+                updateKitsParaRebocarList();
+        
+                // Confirma a notificação no backend
+                fetch('/confirm_rebocador_notification', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ rebocador_id: rebocador_id, notification: notification })
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        closeNotificationModal();
+                    } else {
+                        alert('Erro ao confirmar notificação.');
+                    }
+                })
+                .catch(error => console.error('Erro ao confirmar notificação:', error));
+            }
+        }
+        
+        
+        
+        
+        // Função para converter coordenadas em pixels
+        function extractKitIdFromNotification(notification) {
+            const match = notification.match(/kit (\w+)/);
+            if (match) {
+                const sensorId = match[1];
+                for (const [id, sid] of Object.entries(kitIds)) {
+                    if (sid === sensorId) {
+                        return parseInt(id);
+                    }
+                }
+            }
+            return null;
+        }
+        
+                
+
+        async function calculateDistanceToCorrectDestination(kitId) {
+            const response = await fetch('/get_positions');
+            const data = await response.json();
+            const rebocadorX = data.rebocador.x;
+            const rebocadorY = data.rebocador.y;
+            const destinoType = lastStatus[kitId];
+            const coordenadasDestino = destinosCoordenadas[kitId][destinoType];
+            return calcularDistancia(rebocadorX, rebocadorY, coordenadasDestino.x, coordenadasDestino.y);
+        }
+
+        function calcularDistancia(x1, y1, x2, y2) {
+            const dx = x1 - x2;
+            const dy = y1 - y2;
+            return Math.sqrt(dx * dx + dy * dy);
+        }
+
+        // Função para obter o nome do destino com base no kit e status
+        function getDestinationName(kitId, lastStatus) {
+            if ([1, 4, 5].includes(kitId)) { // Classe A
+                if (lastStatus === 'reabastecimento') {
+                    return 'Supermercado 1';
+                } else if (lastStatus === 'producao') {
+                    return 'Produção A';
+                }
+            } else if ([2, 6, 7].includes(kitId)) { // Classe B
+                if (lastStatus === 'reabastecimento') {
+                    return 'Supermercado 2';
+                } else if (lastStatus === 'producao') {
+                    return 'Produção B';
+                }
+            } else if ([3, 8, 9].includes(kitId)) { // Classe C
+                if (lastStatus === 'reabastecimento') {
+                    return 'Supermercado 3';
+                } else if (lastStatus === 'producao') {
+                    return 'Produção C';
+                }
+            }
+            return 'Destino desconhecido';
+        }
+
+        // Função para atualizar a lista de destinos futuros
+        function updateDestinationList() {
+            const listaDestinos = document.getElementById('lista-destinos');
+            listaDestinos.innerHTML = ''; // Limpa a lista atual
+
+            const destinationsSet = new Set();
+
+            rebocados.forEach(kitId => {
+                const destinationName = getDestinationName(kitId, lastStatus[kitId]);
+                destinationsSet.add(destinationName);
+            });
+
+            // Converte o conjunto em array e ordena se necessário
+            const uniqueDestinations = Array.from(destinationsSet);
+
+            uniqueDestinations.forEach(destinationName => {
+                const listItem = document.createElement('li');
+                listItem.textContent = destinationName;
+                listaDestinos.appendChild(listItem);
+            });
+        }
+
+        // Função para atualizar a posição do rebocador e kits
+        function updatePositions() {
+            fetch(`/get_positions?rebocador_id=${rebocador_id}`)
+                .then(response => response.json())
+                .then(data => {
+                    // Verifica se a resposta contém os rebocadores
+                    if (data.rebocadores && data.rebocadores.length > 0) {
+                        // Encontra o rebocador específico pela ID
+                        const rebocador = data.rebocadores.find(r => r.id === rebocador_id);
+                        if (rebocador) {
+                            const rebocadorElement = document.getElementById('rebocador');
+                            const rebocadorCoords = document.getElementById('rebocador-coords');
+                            const scale = 10; // Ajuste a escala conforme necessário
+        
+                            // Verifica se x e y estão definidos para o rebocador
+                            if (rebocador.x !== undefined && rebocador.y !== undefined) {
+                                const rebocadorX = rebocador.x * scale;
+                                const rebocadorY = rebocador.y * scale;
+                                rebocadorElement.style.left = `${rebocadorX}px`;
+                                rebocadorElement.style.top = `${rebocadorY}px`;
+                                rebocadorCoords.style.left = `${rebocadorX + 40}px`;
+                                rebocadorCoords.style.top = `${rebocadorY}px`;
+                                rebocadorCoords.innerText = `X: ${rebocador.x}, Y: ${rebocador.y}`;
+                            } else {
+                                console.error('Posições do rebocador estão indefinidas:', rebocador);
+                            }
+                        } else {
+                            console.error('Rebocador não encontrado na resposta:', data.rebocadores);
+                        }
+                    } else {
+                        console.error('Nenhum rebocador encontrado na resposta:', data);
+                    }
+        
+                    // Atualiza as posições dos kits
+                    if (data.kits && data.kits.length > 0) {
+                        data.kits.forEach(kit => {
+                            let kitElement = document.getElementById(kit.sensor_id);
+                            if (!kitElement) {
+                                // Cria o elemento do kit se não existir
+                                kitElement = document.createElement('div');
+                                kitElement.id = kit.sensor_id;
+                                kitElement.style.position = 'absolute';
+                                kitElement.style.width = '30px';
+                                kitElement.style.height = '30px';
+                                kitElement.style.backgroundColor = 'blue';
+                                kitElement.style.borderRadius = '50%';
+                                document.getElementById('mapa').appendChild(kitElement);
+                            }
+        
+                            if (kit.status === 'rebocador_a_caminho' || kit.status === 'em_curso') {
+                                // Converte coordenadas para pixels e atualiza a posição do kit
+                                const kitX = kit.x * scale;
+                                const kitY = kit.y * scale;
+                                kitElement.style.left = `${kitX}px`;
+                                kitElement.style.top = `${kitY}px`;
+                                kitElement.style.display = 'block'; // Exibe o kit no mapa
+                            } else {
+                                kitElement.style.display = 'none'; // Esconde kits não relevantes
+                            }
+                        });
+                    }
+        
+                    // Atualiza a distância dos kits ao rebocador
+                    if (rebocador && rebocador.x !== undefined && rebocador.y !== undefined) {
+                        calcularDistanciaAteDestino(rebocador.x, rebocador.y);
+                    }
+                })
+                .catch(error => console.error('Erro ao obter posições:', error));
+        }
+        
+        
+
+        // Função para atualizar a distância de todos os kits em relação ao rebocador
+        function atualizarDistanciasRebocador() {
+            fetch(`/get_distances?rebocador_id=${rebocador_id}`)
+                .then(response => response.json())
+                .then(data => {
+                    if (data.distances) {
+                        data.distances.forEach(dist => {
+                            const distanceCell = document.querySelector(`#kitDistance${dist.kit_id}`);
+                            if (distanceCell) {
+                                distanceCell.innerText = `${dist.distance.toFixed(2)} m`;
+                            }
+                        });
+                    }
+                })
+                .catch(error => console.error('Erro ao obter distâncias:', error));
+        }
+
+        // Função para atualizar a cor do destino com base na classe do kit
+        function updateDestinoColor(kitId) {
+            const destinoReabastecimento = document.getElementById('destino_reabastecimento');
+            const destinoProducao = document.getElementById('destino_producao');
+
+            // Verifica a classe do kit
+            if (kitId <= 3 || (kitId >= 4 && kitId <= 5)) { // Classe A
+                destinoReabastecimento.style.backgroundColor = '#0000FF'; // Azul para classe A
+                destinoProducao.style.backgroundColor = '#0000FF';
+            } else if (kitId >= 6 && kitId <= 7) { // Classe B
+                destinoReabastecimento.style.backgroundColor = '#836FFF'; // Azul claro para classe B
+                destinoProducao.style.backgroundColor = '#836FFF';
+            } else if (kitId >= 8 && kitId <= 9) { // Classe C
+                destinoReabastecimento.style.backgroundColor = '#1E90FF'; // Azul real para classe C
+                destinoProducao.style.backgroundColor = '#1E90FF';
+            }
+        }
+
+        // Atualiza o status do kit-carro selecionado e salva o último status
+        function setKitCarroStatusForKit(kitId, newStatus) {
+            lastStatus[kitId] = newStatus; // Atualiza o status anterior
+        
+            kitStatus[kitId] = newStatus; // Define o novo status
+            const kitStatusCell = document.getElementById(`kitStatus${kitId}`);
+        
+            if (newStatus === 'reabastecimento') {
+                kitStatusCell.innerText = 'reabastecimento';
+                kitStatusCell.className = 'status-reabastecimento';
+            } else if (newStatus === 'producao') {
+                kitStatusCell.innerText = 'produção';
+                kitStatusCell.className = 'status-producao';
+            } else if (newStatus === 'em_curso') {
+                kitStatusCell.innerText = 'em curso';
+                kitStatusCell.className = 'status-em-curso';
+            } else if (newStatus === 'rebocador-a-caminho') {
+                kitStatusCell.innerText = 'rebocador à caminho';
+                kitStatusCell.className = 'status-rebocador-a-caminho';
+            } else if (newStatus === 'entregue') {  // Adicione esse novo status
+                kitStatusCell.innerText = 'entregue';
+                kitStatusCell.className = 'status-producao';  // Use a classe que você preferir
+            }
+        
+            fetch('/update_kit_status', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ kit_ids: [kitId], status: newStatus })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (!data.success) {
+                    console.error('Erro ao atualizar o status no backend:', data.error);
+                }
+            });
+        }
+        
+
+        // Função auxiliar para atualizar o status de um kit específico
+        function setKitCarroStatusForKit(kitId, newStatus) {
+            // Atualiza lastStatus se necessário
+            if (newStatus === 'reabastecimento' || newStatus === 'producao') {
+                lastStatus[kitId] = newStatus; // Salva o novo status em lastStatus
+            }
+
+            kitStatus[kitId] = newStatus; // Define o novo status
+            const kitStatusCell = document.getElementById(`kitStatus${kitId}`);
+
+            if (newStatus === 'reabastecimento') {
+                kitStatusCell.innerText = 'reabastecimento';
+                kitStatusCell.className = 'status-reabastecimento';
+            } else if (newStatus === 'producao') {
+                kitStatusCell.innerText = 'producao';
+                kitStatusCell.className = 'status-producao';
+            } else if (newStatus === 'em_curso') {
+                kitStatusCell.innerText = 'em curso';
+                kitStatusCell.className = 'status-em-curso';
+            } else if (newStatus === 'rebocador-a-caminho') {
+                kitStatusCell.innerText = 'rebocador à caminho';
+                kitStatusCell.className = 'status-rebocador-a-caminho';
+            }
+
+            fetch('/update_kit_status', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ kit_ids: [kitId], status: newStatus })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (!data.success) {
+                    console.error('Erro ao atualizar o status no backend:', data.error);
+                }
+            });
+        
+            // Atualiza o status no backend
+            atualizarStatusBackend(kitId, newStatus);
+        }
+
+        // Função para deixar o kit atual e avançar para o próximo
+        function deixarKit() {
+            const rebocador = rebocadores.find(r => r.id === rebocador_id);
+            const kitId = rebocador.emCurso[0]; // Pega o primeiro kit em curso
+        
+            fetch('/deliver_kit', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ kit_id: kitId })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    alert('Kit entregue!');
+                    updateRebocadorLists(rebocador_id); // Atualiza as listas no frontend após a entrega
+                    if (rebocador && Array.isArray(rebocador.rebocados) && rebocador.rebocados.length > 0) {
+                        console.log(rebocador.kitsEmCurso);
+                        console.log(rebocador.rebocados);
+                        rebocador.rebocados.shift();
+                        console.log(rebocador.rebocados);
+                        console.log(rebocador.kitsEmCurso);
+                    } else {
+                        console.error('Erro: O rebocador ou a lista de rebocados está indefinido ou vazia.');
+                    }
+                    updateKitSeguidoText();
+                    updateKitsParaRebocarList();
+                } else {
+                    console.error('Erro ao deixar o kit:', data.error);
+                }
+            })
+            .catch(error => console.error('Erro ao deixar o kit:', error));
+        }
+        
+        // Função para exibir o modal de confirmação ao montador
+        function showMontadorConfirmationModal(kitId, kitName) {
+            const confirmationModal = document.getElementById('confirmationModal');
+            const modalMessageElement = document.getElementById('modalMessage');
+            
+            if (!modalMessageElement) {
+                console.error('Elemento modalMessage não encontrado no DOM');
+                return;
+            }
+        
+            modalMessageElement.innerText = `O kit ${kitName} foi entregue. Confirmar entrega?`;
+        
+            // Exibir modal
+            confirmationModal.style.display = 'block';
+        
+            // Lógica para o botão de confirmação
+            document.getElementById('confirmDeliveryBtn').onclick = function() {
+                confirmarEntrega(kitId);
+                confirmationModal.style.display = 'none';
+            };
+        
+            // Lógica para o botão de recusar
+            document.getElementById('declineDeliveryBtn').onclick = function() {
+                recusarEntrega(kitId);
+                confirmationModal.style.display = 'none';
+            };
+        }          
+               
+        function recusarEntrega(kitId) {
+            fetch('/decline_delivery', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ kit_id: kitId })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    alert(`Entrega do kit ${kitIds[kitId]} foi recusada.`);
+                    
+                    // Remover notificação de erro do modal
+                    closeErrorModal();
+        
+                    // Atualizar backend e UI conforme necessário
+                } else {
+                    alert('Erro ao recusar entrega.');
+                }
+            })
+            .catch(error => console.error('Erro ao recusar entrega:', error));
+        }            
+        
+        // Função para confirmar a entrega no backend
+        function confirmarEntrega(kitId) {
+            const rebocador = rebocadores.find(r => r.id === rebocador_id);
+            fetch('/confirm_delivery', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ kit_id: kitId })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    alert(`Entrega do kit ${kitIds[kitId]} confirmada.`);
+                    // Remover o kit das listas
+                    rebocador.kitsEmCurso = rebocador.kitsEmCurso.filter(id => id !== kitId);
+                    rebocador.rebocados = rebocador.rebocados.filter(id => id !== kitId);
+                    console.log(rebocador.kitsEmCurso)
+                    // Atualizar a interface
+                    updateKitSeguidoText();
+                    updateDestinationList();
+                    updateKitsParaRebocarList(); // Atualiza a lista de kits para rebocar
+                    
+                    // Esconder o destino no mapa
+                    hideDestinos();
+
+                    setKitCarroStatusForKit(kitId, 'produção');
+                    updateDestinationList(); // Atualiza a lista de destinos futuros
+                } else {
+                    alert('Erro ao confirmar entrega.');
+                }
+            })
+            .catch(error => console.error('Erro ao confirmar entrega:', error));
+        }
+
+        function updateRebocadorLists(rebocador_id) {
+            fetch(`/get_rebocador_data?rebocador_id=${rebocador_id}`)
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        // Garante que rebocados e emCurso sejam sempre arrays, mesmo que vazios
+                        rebocados = Array.isArray(data.rebocados) ? data.rebocados : [];
+                        kitsEmCurso = Array.isArray(data.emCurso) ? data.emCurso : [];
+        
+                        updateKitSeguidoText(rebocados, kitsEmCurso);
+                    } else {
+                        console.error('Erro ao atualizar as listas:', data.error);
+                    }
+                })
+                .catch(error => console.error('Erro ao obter dados do rebocador:', error));
+        }
+        const rebocador = rebocadores.find(r => r.id === rebocador_id);
+
+        function updateKitSeguidoText() {
+            // Primeiro, encontrar o rebocador pelo seu ID
+            const rebocador = rebocadores.find(r => r.id === rebocador_id); // Pega o rebocador correto pela variável rebocador_id
+
+            // Verifica se o objeto 'rebocador' foi encontrado e se possui as listas 'rebocados' e 'emCurso'
+            if (rebocador && Array.isArray(rebocador.rebocados) && Array.isArray(rebocador.emCurso)) {
+                // Combina ambas as listas
+                const allKits = [...rebocador.emCurso, ...rebocador.rebocados]; 
+
+                // Atualiza o texto com base na quantidade de kits
+                if (allKits.length > 0) {
+                    document.getElementById('kitSeguido').innerText = `Rebocador está seguindo os Kits: ${rebocador.rebocados.map(id => kitIds[id]).join(', ')}`;
+                } else {
+                    document.getElementById('kitSeguido').innerText = 'Rebocador não está seguindo nenhum Kit-Carro';
+                }
+            } else {
+                // Exibe um erro se o rebocador não for encontrado ou as listas não estiverem definidas
+                console.error("Rebocador não encontrado ou listas 'rebocados'/'emCurso' não definidas corretamente.");
+                document.getElementById('kitSeguido').innerText = 'Rebocador não está seguindo nenhum Kit-Carro';
+            }
+        }
+
+        // Função para esconder os destinos
+        function hideDestinos() {
+            document.getElementById('destino_reabastecimento').style.display = 'none';
+            document.getElementById('destino_producao').style.display = 'none';
+        }
+
+        // Inicia o status "Em Curso" e salva o status anterior
+        function startEmCurso() {
+            // Primeiro, encontrar o rebocador pelo seu ID
+            const rebocador = rebocadores.find(r => r.id === rebocador_id);
+
+            // Verificar se a lista de kits para rebocar do rebocador está disponível
+            if (rebocador && rebocador.kits_para_rebocar.length > 0) {
+                // Iterar sobre os kits para rebocar e iniciar o processo de reboque
+                rebocador.kits_para_rebocar.forEach(kitId => {
+                    addKitToEmCurso(rebocador, kitId); // Adicionar o kit à lista de em curso
+                    addKitToRebocados(rebocador, kitId); // Adicionar o kit à lista de rebocados
+        
+                    kitStatus[kitId] = 'em_curso'; // Define o status como "em curso"
+                    setKitCarroStatusForKit(kitId, 'em_curso'); // Atualiza o status visualmente
+                    console.log('Antes de shift(); em kits para rebocar', rebocador.kits_para_rebocar);
+                    if(rebocador.kits_para_rebocar.includes(kitId)) {
+                        rebocador.kits_para_rebocar = rebocador.kits_para_rebocar.filter(id => id !== kitId);
+                    } // Remove o kit da lista de kits para rebocar
+                    console.log('depois de shift();', rebocador.kits_para_rebocar);
+                    // Atualiza o backend para refletir o novo status
+                    atualizarStatusBackend(kitId, 'em_curso');
+                    updateKitSeguidoText(rebocador); // Atualiza o texto na página
+                    showDestinoOnMap(rebocador); // Mostra o destino no mapa
+                    updateKitsParaRebocarList();
+                    rebocador.notifications.shift();
+                });
+        
+                // Atualiza a lista de kits para rebocar no backend
+                updateKitsParaRebocarBackend(rebocador);
+            } else {
+                alert('Nenhum kit para rebocar');
+            }
+        }
+        
+        
+        
+        function updateKitsParaRebocarBackend(rebocador) {
+            fetch('/update_kits_para_rebocar', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ rebocador_id: rebocador.id, kits_para_rebocar: rebocador.kits_para_rebocar })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (!data.success) {
+                    console.error('Erro ao atualizar a lista de kits para rebocar no backend:', data.error);
+                }
+            });
+        }
+        
+
+        // Função para atualizar o status no backend
+        function atualizarStatusBackend(kitId, newStatus) {
+            if (!kitId || !newStatus) {
+              console.error('kitId ou newStatus não foi fornecido.');
+              return;
+            }
+            fetch('/update_kit_status', {
+              method: 'POST',
+              headers: {'Content-Type': 'application/json'},
+              body: JSON.stringify({kit_ids: [kitId], status: newStatus})
+            })
+            .then(response => response.json())
+            .then(data => {
+              if (!data.success) {
+                console.error('Erro ao atualizar o status no backend:', data.error);
+              }
+            })
+            .catch(error => console.error('Erro ao atualizar o status no backend:', error));
+          }
+          
+
+        // Seleciona qual kit-carro está sendo seguido
+        function chooseKit(kitId) {
+            const rebocador = rebocadores.find(r => r.id === rebocador_id);
+            
+            if (rebocador.rebocados.length >= 3) {
+                alert('O rebocador já está transportando 3 kits!');
+                return;
+            }
+
+        
+            document.getElementById('kitSeguido').innerText = `Rebocador está seguindo os Kits: ${rebocador.rebocados.map(id => kitIds[id]).join(', ')}`;
+        
+            // Define o status como "rebocador à caminho"
+            kitStatus[kitId] = 'rebocador-a-caminho';
+            const kitStatusCell = document.getElementById(`kitStatus${kitId}`);
+            kitStatusCell.innerText = 'rebocador à caminho';
+            kitStatusCell.className = 'status-rebocador-a-caminho';
+        
+            // Atualiza o status no backend
+            atualizarStatusBackend(kitId, 'rebocador-a-caminho');
+        
+            // Atualiza a cor do destino com base no kit
+            updateDestinoColor(kitId);
+        
+            // Fecha o modal após a seleção
+            closeModal();
+        
+            // Atualiza a lista de destinos futuros
+            updateDestinationList();
+        }
+        
+
+        function openModal() {
+            // Atualiza a lista de kit-carros no modal
+            const columnA = document.getElementById('kit-column-a');
+            const columnB = document.getElementById('kit-column-b');
+            const columnC = document.getElementById('kit-column-c');
+            columnA.innerHTML = '<h4>Classe A</h4>'; // Limpa opções anteriores e mantém o cabeçalho
+            columnB.innerHTML = '<h4>Classe B</h4>';
+            columnC.innerHTML = '<h4>Classe C</h4>';
+
+            for (let i = 1; i <= 9; i++) {
+                const status = document.getElementById(`kitStatus${i}`).innerText;
+                if (status !== 'em curso' && status !== 'rebocador à caminho') { // Só adiciona kits que não estão 'em curso' ou 'rebocador à caminho'
+                    const button = document.createElement('button');
+                    button.innerText = `Kit-Carro ${kitIds[i]}`;
+                    button.onclick = () => chooseKit(i);
+
+                    // Adiciona os kits nas colunas apropriadas
+                    if (i <= 3 || (i >= 4 && i <= 5)) { // Classe A
+                        columnA.appendChild(button);
+                    } else if (i >= 6 && i <= 7) { // Classe B
+                        columnB.appendChild(button);
+                    } else if (i >= 8 && i <= 9) { // Classe C
+                        columnC.appendChild(button);
+                    }
+                }
+            }
+
+            document.getElementById('kitModal').style.display = 'block';
+        }
+
+        function closeModal() {
+            document.getElementById('kitModal').style.display = 'none';
+        }
+
+        // Função para converter coordenadas em pixels
+        function coordenadasParaPixels(coordenada) {
+            const scale = 10; // Definindo a escala
+            return {
+                left: coordenada.x * scale,
+                top: coordenada.y * scale
+            };
+        }
+
+        // Função para mostrar os destinos no mapa
+        function showDestinoOnMap() {
+            if (kitsEmCurso.length > 0) {
+                const kitId = kitsEmCurso[0];
+                const destinoType = lastStatus[kitId];
+                
+                if (!destinosCoordenadas[kitId] || !destinosCoordenadas[kitId][destinoType]) {
+                    console.error("Kit ou destino não encontrado. kitId:", kitId, "destinoType:", destinoType);
+                    hideDestinos();
+                    return;
+                }
+
+                let destinoElement;
+
+                if (destinoType === 'reabastecimento') {
+                    destinoElement = document.getElementById('destino_reabastecimento');
+                    document.getElementById('destino_producao').style.display = 'none';
+                } else if (destinoType === 'producao') {
+                    destinoElement = document.getElementById('destino_producao');
+                    document.getElementById('destino_reabastecimento').style.display = 'none';
+                } else {
+                    hideDestinos();
+                    return;
+                }
+
+                // Converte as coordenadas em pixels e atualiza a posição do destino
+                const coordenadas = destinosCoordenadas[kitId][destinoType];
+                const pixels = coordenadasParaPixels(coordenadas);
+
+                destinoElement.style.left = `${pixels.left}px`;
+                destinoElement.style.top = `${pixels.top}px`;
+                destinoElement.style.display = 'block';
+            } else {
+                hideDestinos();
+            }
+        }
+
+
+        // Função para calcular e exibir a distância até o destino
+        function calcularDistanciaAteDestino(rebocadorX, rebocadorY) {
+            if (rebocados.length > 0) {
+                const destinoType = lastStatus[rebocados[0]];
+                const coordenadasDestino = destinosCoordenadas[rebocados[0]][destinoType];
+        
+                const distancia = calcularDistancia(
+                    rebocadorX,
+                    rebocadorY,
+                    coordenadasDestino.x,
+                    coordenadasDestino.y
+                );
+        
+                // Atualiza o texto com a distância
+                document.getElementById('distanciaDestino').innerText = `Distância até o destino: ${distancia.toFixed(2)} m`;
+            } else {
+                document.getElementById('distanciaDestino').innerText = 'Distância até o destino: N/A';
+            }
+        }
+        
+
+        setInterval(checkForNotifications, 3000); 
+        setInterval(updateDestinationList, 5000);
+        setInterval(updateDestinoColor, 5000);
+        setInterval(updatePositions, 3000);
+        setInterval(loadKitsParaRebocar, 5000);
+        //setInterval(updateKitTable, 5000);
+        
+
+    </script>
+
+</body>
+</html>

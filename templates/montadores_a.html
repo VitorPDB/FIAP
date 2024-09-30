@@ -1,0 +1,352 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <title>Montadores A - Controle de Kits</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            text-align: center;
+            background-color: #ffffff;
+        }
+        .button-container {
+            margin: 20px auto;
+            width: 80%;
+        }
+        button {
+            padding: 10px 20px;
+            font-size: 16px;
+            cursor: pointer;
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            margin: 5px;
+        }
+        button:disabled {
+            background-color: #ccc;
+            cursor: not-allowed;
+        }
+        button:hover:not(:disabled) {
+            background-color: #45a049;
+        }
+        .status-table {
+            margin: 20px auto;
+            width: 80%;
+            border-collapse: collapse;
+        }
+        .status-table th, .status-table td {
+            padding: 10px;
+            border: 1px solid #ddd;
+            text-align: center;
+        }
+        .status-table th {
+            background-color: #f2f2f2;
+        }
+        .modal {
+            display: none;
+            position: fixed;
+            z-index: 1;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0,0,0,0.5);
+            animation: fadeIn 0.5s ease;
+        }
+        .modal-content {
+            background-color: #fefefe;
+            margin: 10% auto;
+            padding: 20px;
+            border: 1px solid #888;
+            width: 50%;
+            border-radius: 10px;
+            animation: slideIn 0.3s ease;
+        }
+        .close-btn {
+            color: red;
+            float: right;
+            font-size: 28px;
+            font-weight: bold;
+            cursor: pointer;
+        }
+        .close-btn:hover {
+            color: darkred;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+
+        @keyframes slideIn {
+            from { transform: translateY(-50px); opacity: 0; }
+            to { transform: translateY(0); opacity: 1; }
+        }
+
+        .modal-backdrop {
+            filter: blur(5px);
+        }
+    </style>
+</head>
+<body>
+    <h2>Montadores A - Controle de Kits</h2>
+
+    <div class="button-container">
+        <button id="solicitarButton" onclick="openModal('reabastecimento')">Solicitar Kits</button>
+    </div>
+
+    <!-- Modal de confirmação de entrega -->
+    <div id="confirmationModal" class="modal">
+        <div class="modal-content">
+            <span class="close-btn" onclick="closeModal()">&times;</span>
+            <p id="modalMessage">A mensagem de confirmação aparecerá aqui.</p> <!-- Este é o modalMessage que está faltando -->
+            <button id="confirmDeliveryBtn">Confirmar</button>
+            <button id="declineDeliveryBtn">Recusar</button>
+        </div>
+    </div>
+
+    <table class="status-table">
+        <thead>
+            <tr>
+                <th>Kit-Carro</th>
+                <th>Status</th>
+                <th>Posição X</th>
+                <th>Posição Y</th>
+            </tr>
+        </thead>
+        <tbody id="kit-table">
+            <!-- Conteúdo será inserido via JavaScript -->
+        </tbody>
+    </table>
+
+    <!-- Modal -->
+    <div id="kitModal" class="modal">
+        <div class="modal-content">
+            <span class="close-btn" onclick="closeModal()">&times;</span>
+            <h3 id="modalTitle">Selecione os Kits</h3>
+            <div id="kitOptions">
+                <!-- Opções de kits serão inseridas aqui -->
+            </div>
+            <button id="submitBtn" onclick="submitStatusChange()">Enviar</button>
+        </div>
+    </div>
+
+    <script>
+        let kits = [];
+        let selectedKits = [];
+        let newStatus = '';
+        let isSubmitting = false;
+
+        const kitIds = {
+            1: 'kit_a_1',
+            2: 'kit_b_1',
+            3: 'kit_c_1',
+            4: 'kit_a_2',
+            5: 'kit_a_3',
+            6: 'kit_b_2',
+            7: 'kit_b_3',
+            8: 'kit_c_2',
+            9: 'kit_c_3'
+        };
+
+        function loadKits() {
+            fetch('/get_kits?classe=a')
+                .then(response => response.json())
+                .then(data => {
+                    kits = data;
+                    updateKitTable();
+                });
+        }
+
+        loadKits();
+
+        function updateKitTable() {
+            const tableBody = document.getElementById('kit-table');
+            tableBody.innerHTML = '';
+            kits.forEach(kit => {
+                const row = document.createElement('tr');
+                row.innerHTML = `
+                    <td>${kit.sensor_id}</td>
+                    <td>${kit.status}</td>
+                    <td>${kit.x_position !== null ? kit.x_position : 'N/A'}</td>
+                    <td>${kit.y_position !== null ? kit.y_position : 'N/A'}</td>
+                `;
+                tableBody.appendChild(row);
+            });
+        }
+
+        function openModal(status) {
+            newStatus = status;
+            document.getElementById('modalTitle').innerText = status === 'reabastecimento' ? 'Solicitar Kits' : 'Confirmar Entrega';
+            const kitOptionsDiv = document.getElementById('kitOptions');
+            kitOptionsDiv.innerHTML = '';
+            selectedKits = [];
+
+            kits.forEach(kit => {
+                const checkbox = document.createElement('input');
+                checkbox.type = 'checkbox';
+                checkbox.value = kit.id;
+                checkbox.id = `kit-${kit.id}`;
+
+                const label = document.createElement('label');
+                label.htmlFor = `kit-${kit.id}`;
+                label.innerText = kit.sensor_id;
+
+                const div = document.createElement('div');
+                div.appendChild(checkbox);
+                div.appendChild(label);
+
+                kitOptionsDiv.appendChild(div);
+            });
+
+            document.getElementById('kitModal').style.display = 'block';
+            document.body.classList.add('modal-backdrop');
+        }
+
+        function closeModal() {
+            document.getElementById('kitModal').style.display = 'none';
+            document.body.classList.remove('modal-backdrop');
+        }
+
+        function checkForDeliveries() {
+            fetch('/get_deliveries?classe=a')  // Chama o backend para verificar se há entregas pendentes
+            .then(response => response.json())
+            .then(data => {
+                if (data.deliveries && data.deliveries.length > 0) {
+                    const delivery = data.deliveries[0];  // Pega a primeira entrega pendente
+                    showMontadorConfirmationModal(delivery.kit_id, delivery.sensor_id);
+                }
+            })
+            .catch(error => console.error('Erro ao verificar entregas:', error));
+        }
+        
+        function showMontadorConfirmationModal(kitId, kitName) {
+            const confirmationModal = document.getElementById('confirmationModal');
+            const modalMessageElement = document.getElementById('modalMessage');
+            
+            modalMessageElement.innerText = `O kit ${kitName} foi entregue. Confirmar entrega?`;
+        
+            // Exibir o modal
+            confirmationModal.style.display = 'block';
+        
+            // Lógica para o botão de confirmação
+            document.getElementById('confirmDeliveryBtn').onclick = function() {
+                confirmarEntrega(kitId);
+                confirmationModal.style.display = 'none';
+            };
+        
+            // Lógica para o botão de recusar
+            document.getElementById('declineDeliveryBtn').onclick = function() {
+                recusarEntrega(kitId);
+                confirmationModal.style.display = 'none';
+            };
+        }        
+        
+        function confirmarEntrega(kitId) {
+            fetch('/confirm_delivery', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ kit_id: kitId })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    alert(`Entrega do kit ${kitIds[kitId]} confirmada.`);
+                    loadKits();  // Atualiza a tabela de kits
+                } else {
+                    alert('Erro ao confirmar entrega.');
+                }
+            })
+            .catch(error => console.error('Erro ao confirmar entrega:', error));
+        }        
+        
+        
+        function recusarEntrega(kitId) {
+            fetch('/decline_delivery', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ kit_id: kitId })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    alert(`Entrega do kit ${kitIds[kitId]} foi recusada.`);
+                } else {
+                    alert('Erro ao recusar entrega.');
+                }
+            })
+            .catch(error => console.error('Erro ao recusar entrega:', error));
+        }
+               
+
+        setInterval(checkForDeliveries, 5000); // Verifica a cada 5 segundos        
+
+        function submitStatusChange() {
+            if (isSubmitting) return;
+            const checkboxes = document.querySelectorAll('#kitOptions input[type="checkbox"]:checked');
+            const kit_ids = Array.from(checkboxes).map(cb => parseInt(cb.value));
+            
+            if (checkboxes.length === 0) {
+                alert('Selecione pelo menos um kit.');
+                return;
+            }
+            isSubmitting = true;
+            document.getElementById('submitBtn').disabled = true;
+
+            fetch('/update_kit_status', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ kit_ids: kit_ids, status: newStatus })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    kits.forEach(kit => {
+                        if (kit_ids.includes(kit.id)) {
+                            kit.status = newStatus;
+                        }
+                    });
+                    updateKitTable();
+                    closeModal();
+                    alert('Status atualizado com sucesso!');
+                } else {
+                    alert('Erro ao atualizar status.');
+                }
+            })
+            .finally(() => {
+                isSubmitting = false;
+                document.getElementById('submitBtn').disabled = false;
+            });
+        }
+
+        function atualizarStatusBackend(kitId, newStatus) {
+            fetch('/update_kit_status', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ kit_ids: [kitId], status: newStatus })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (!data.success) {
+                    alert('Erro ao atualizar status: ' + data.error); // Exibe a mensagem de erro correta
+                } else {
+                    console.log('Status atualizado com sucesso.');
+                }
+            })
+            .catch(error => console.error('Erro ao atualizar o status no backend:', error));
+        }
+        
+
+        setInterval(loadKits, 3000);
+
+        window.onclick = function(event) {
+            const modal = document.getElementById('kitModal');
+            if (event.target == modal) {
+                closeModal();
+            }
+        }
+        setInterval(updateKitTable, 3000);
+    </script>
+</body>
+</html>

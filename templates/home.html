@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <title>Home - Seleção de Funções</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            text-align: center;
+            background-color: #f0f0f0;
+            padding-top: 50px;
+        }
+        h1 {
+            color: #333;
+        }
+        p {
+            font-size: 18px;
+            color: #555;
+        }
+        a {
+            text-decoration: none;
+        }
+        button {
+            padding: 10px 20px;
+            font-size: 16px;
+            margin: 10px;
+            cursor: pointer;
+            border-radius: 5px;
+            border: none;
+            background-color: #4CAF50;
+            color: white;
+            transition: background-color 0.3s;
+        }
+        button:hover {
+            background-color: #45a049;
+        }
+    </style>    
+</head>
+
+<body>
+    <h1>Bem-vindo ao Sistema</h1>
+    <p>Selecione sua função:</p>
+    <a href="{{ url_for('montadores_a') }}"><button>Montadores A</button></a>
+    <a href="{{ url_for('montadores_b') }}"><button>Montadores B</button></a>
+    <a href="{{ url_for('montadores_c') }}"><button>Montadores C</button></a>
+    
+    <!-- Botões para os rebocadores -->
+    <p>Selecione seu rebocador:</p>
+    <a href="{{ url_for('rebocador1_page') }}"><button>Rebocador 1</button></a>
+    <a href="{{ url_for('rebocador2_page') }}"><button>Rebocador 2</button></a>
+</body>
+</html>

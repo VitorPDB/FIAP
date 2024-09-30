@@ -1,0 +1,212 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <title>Montadores B - Controle de Kits</title>
+    <style>
+        /* Estilos permanecem os mesmos */
+        body {
+            font-family: Arial, sans-serif;
+            text-align: center;
+            background-color: #ffffff;
+        }
+        .button-container {
+            margin: 20px auto;
+            width: 80%;
+        }
+        button {
+            padding: 10px 20px;
+            font-size: 16px;
+            cursor: pointer;
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            margin: 5px;
+        }
+        button:hover {
+            background-color: #45a049;
+        }
+        .status-table {
+            margin: 20px auto;
+            width: 80%;
+            border-collapse: collapse;
+        }
+        .status-table th, .status-table td {
+            padding: 10px;
+            border: 1px solid #ddd;
+            text-align: center;
+        }
+        .status-table th {
+            background-color: #f2f2f2;
+        }
+        .modal {
+            display: none;
+            position: fixed;
+            z-index: 1;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0,0,0,0.5);
+        }
+        .modal-content {
+            background-color: #fefefe;
+            margin: 10% auto;
+            padding: 20px;
+            border: 1px solid #888;
+            width: 50%;
+        }
+        .close-btn {
+            color: red;
+            float: right;
+            font-size: 28px;
+            font-weight: bold;
+            cursor: pointer;
+        }
+        .close-btn:hover {
+            color: darkred;
+        }
+    </style>
+</head>
+<body>
+    <h2>Montadores B - Controle de Kits</h2>
+
+    <div class="button-container">
+        <button onclick="openModal('reabastecimento')">Solicitar Kits</button>
+        <button onclick="openModal('produção')">Confirmar Entrega</button>
+    </div>
+
+    <table class="status-table">
+        <thead>
+            <tr>
+                <th>Kit-Carro</th>
+                <th>Status</th>
+                <th>Posição X</th>
+                <th>Posição Y</th>
+            </tr>
+        </thead>
+        <tbody id="kit-table">
+            <!-- Conteúdo será inserido via JavaScript -->
+        </tbody>
+    </table>
+
+    <!-- Modal -->
+    <div id="kitModal" class="modal">
+        <div class="modal-content">
+            <span class="close-btn" onclick="closeModal()">&times;</span>
+            <h3 id="modalTitle">Selecione os Kits</h3>
+            <div id="kitOptions">
+                <!-- Opções de kits serão inseridas aqui -->
+            </div>
+            <button onclick="submitStatusChange()">Enviar</button>
+        </div>
+    </div>
+
+    <script>
+        let kits = [];
+        let selectedKits = [];
+        let newStatus = '';
+
+        function loadKits() {
+            fetch('/get_kits?classe=b')
+                .then(response => response.json())
+                .then(data => {
+                    kits = data;
+                    updateKitTable();
+                });
+        }
+
+        loadKits();
+
+        function updateKitTable() {
+            const tableBody = document.getElementById('kit-table');
+            tableBody.innerHTML = '';
+            kits.forEach(kit => {
+                const row = document.createElement('tr');
+                row.innerHTML = `
+                    <td>${kit.sensor_id}</td>
+                    <td>${kit.status}</td>
+                    <td>${kit.x_position !== null ? kit.x_position : 'N/A'}</td>
+                    <td>${kit.y_position !== null ? kit.y_position : 'N/A'}</td>
+                `;
+                tableBody.appendChild(row);
+            });
+        }
+
+        function openModal(status) {
+            newStatus = status;
+            document.getElementById('modalTitle').innerText = status === 'reabastecimento' ? 'Solicitar Kits' : 'Confirmar Entrega';
+            const kitOptionsDiv = document.getElementById('kitOptions');
+            kitOptionsDiv.innerHTML = '';
+            selectedKits = [];
+
+            kits.forEach(kit => {
+                const checkbox = document.createElement('input');
+                checkbox.type = 'checkbox';
+                checkbox.value = kit.id;
+                checkbox.id = `kit-${kit.id}`;
+
+                const label = document.createElement('label');
+                label.htmlFor = `kit-${kit.id}`;
+                label.innerText = kit.sensor_id;
+
+                const div = document.createElement('div');
+                div.appendChild(checkbox);
+                div.appendChild(label);
+
+                kitOptionsDiv.appendChild(div);
+            });
+
+            document.getElementById('kitModal').style.display = 'block';
+        }
+
+        function closeModal() {
+            document.getElementById('kitModal').style.display = 'none';
+        }
+
+        function submitStatusChange() {
+            const checkboxes = document.querySelectorAll('#kitOptions input[type="checkbox"]:checked');
+            if (checkboxes.length === 0) {
+                alert('Selecione pelo menos um kit.');
+                return;
+            }
+
+            const kit_ids = Array.from(checkboxes).map(cb => parseInt(cb.value));
+
+            fetch('/update_kit_status', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ kit_ids: kit_ids, status: newStatus })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    // Atualiza os kits localmente
+                    kits.forEach(kit => {
+                        if (kit_ids.includes(kit.id)) {
+                            kit.status = newStatus;
+                        }
+                    });
+                    updateKitTable();
+                    closeModal();
+                    alert('Status atualizado com sucesso!');
+                } else {
+                    alert('Erro ao atualizar status.');
+                }
+            });
+        }
+
+        // Atualiza a tabela periodicamente para refletir mudanças
+        setInterval(loadKits, 5000);
+        setInterval(updateKitTable, 5000);
+
+        window.onclick = function(event) {
+            const modal = document.getElementById('kitModal');
+            if (event.target == modal) {
+                modal.style.display = "none";
+            }
+        }
+    </script>
+</body>
+</html>
